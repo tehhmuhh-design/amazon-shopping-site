@@ -8,27 +8,40 @@ function AddProduct() {
   const [price, setPrice] = useState("");
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
-  const [imageUrl, setImageUrl] = useState(""); // Changed to hold the text URL string
+  const [imageFile, setImageFile] = useState(null); // CHANGED: Holds the actual file object now
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-
-    if (!imageUrl.startsWith("http")) {
-      alert("Please enter a valid image URL from gaac.vercel.app");
-      setLoading(false);
+    
+    if (!imageFile) {
+      alert("Please select a product image file first.");
       return;
     }
 
+    setLoading(true);
+
     try {
-      // Direct JSON storage into your Firestore Database (Spark Plan Friendly!)
+      // 1. Upload the chosen file to your Vercel Blob Storage API route
+      const uploadResponse = await fetch(`/api/upload?filename=${imageFile.name}`, {
+        method: "POST",
+        body: imageFile,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to upload image to storage.");
+      }
+
+      const blobData = await uploadResponse.json();
+      const uploadedImageUrl = blobData.url; // This is your live Vercel CDN link!
+
+      // 2. Direct JSON storage into your Firestore Database (Spark Plan Friendly!)
       await addDoc(collection(db, "products"), {
         title: title,
         price: Number(price),
         category: category,
         description: description,
-        image: imageUrl, // Saving the text URL directly
+        image: uploadedImageUrl, // Saving the freshly generated Vercel link!
         createdAt: new Date(),
       });
 
@@ -39,7 +52,8 @@ function AddProduct() {
       setPrice("");
       setCategory("");
       setDescription("");
-      setImageUrl("");
+      setImageFile(null);
+      e.target.reset(); // Resets the HTML file picker UI input field
     } catch (error) {
       console.error("Error adding product: ", error);
       alert("Database error: Could not save product.");
@@ -99,20 +113,20 @@ function AddProduct() {
             />
           </div>
 
+          {/* CHANGED: Swapped from text string pasting to local file picker */}
           <div>
-            <label htmlFor="image">Product Image URL</label>
+            <label htmlFor="image">Product Image File</label>
             <input
-              type="text"
+              type="file"
               id="image"
-              placeholder="Paste the CDN link from gaac.vercel.app here"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
+              accept="image/*"
+              onChange={(e) => setImageFile(e.target.files[0])}
               required
             />
           </div>
 
           <button type="submit" disabled={loading}>
-            {loading ? "Saving Product..." : "Add Product"}
+            {loading ? "Uploading & Saving..." : "Add Product"}
           </button>
         </form>
       </div>
