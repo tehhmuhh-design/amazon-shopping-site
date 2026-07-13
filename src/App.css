@@ -1,0 +1,23 @@
+/* App-level base styles for the Amazon clone */
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+ul {
+  list-style: none;
+}
+
+button {
+  font-family: inherit;
+}
+
+body {
+  background-color: #eaeded;
+  color: #0f1111;
+}
+
+img {
+  max-width: 100%;
+}

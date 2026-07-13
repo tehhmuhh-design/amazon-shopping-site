@@ -1,0 +1,128 @@
+.auth {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  background: #fff;
+  padding: 8px 16px 48px;
+}
+
+.auth img {
+  margin: 14px auto 6px;
+  object-fit: contain;
+  width: 100px;
+}
+
+.auth__container {
+  width: 100%;
+  max-width: 350px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 20px 26px 26px;
+  box-shadow: 0 2px 10px rgba(15, 17, 17, 0.08);
+}
+
+.auth__container h1 {
+  font-size: 28px;
+  font-weight: 400;
+  color: #0f1111;
+  margin-bottom: 14px;
+}
+
+.auth__container form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.auth__container form div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.auth__container label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f1111;
+}
+
+.auth__container form input {
+  padding: 9px 10px;
+  background: #fff;
+  width: 100%;
+  border: 1px solid #a6a6a6;
+  border-radius: 6px;
+  font-size: 15px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.auth__container form input:focus {
+  outline: none;
+  border-color: #e77600;
+  box-shadow: 0 0 0 3px rgba(231, 118, 0, 0.25);
+}
+
+.auth__signIn_btn {
+  border: 1px solid #fcd200;
+  background: linear-gradient(to bottom, #f7dfa5, #f0c14b);
+  border-radius: 8px;
+  width: 100%;
+  min-height: 36px;
+  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f1111;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+.auth__signIn_btn:hover {
+  filter: brightness(0.97);
+}
+.auth__signIn_btn:active {
+  filter: brightness(0.94);
+}
+
+.auth__container p {
+  padding: 12px 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #565959;
+}
+
+.auth__signUp_btn {
+  border: 1px solid #d5d9d9;
+  background: linear-gradient(to bottom, #f7f8fa, #e7e9ec);
+  border-radius: 8px;
+  width: 100%;
+  min-height: 36px;
+  margin-top: 8px;
+  font-size: 13px;
+  color: #0f1111;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+.auth__signUp_btn:hover {
+  filter: brightness(0.98);
+}
+
+.auth__error {
+  display: block;
+  padding-top: 8px;
+  color: #c40000;
+  font-size: 13px;
+}
+
+.auth__msg_login {
+  display: block;
+  padding: 8px;
+  margin-bottom: 8px;
+  text-align: center;
+  color: #c40000;
+  font-weight: 600;
+  background: #fff4f4;
+  border: 1px solid #f5c6c6;
+  border-radius: 6px;
+}

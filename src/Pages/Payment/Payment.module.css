@@ -1,0 +1,130 @@
+.payment__header {
+  padding: 16px 24px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #0f1111;
+  background-color: #f3f3f3;
+  border-bottom: 1px solid #e7e7e7;
+  text-align: center;
+}
+
+.payment__method__wrapper {
+  max-width: 1000px;
+  margin: 24px auto;
+  padding: 0 16px 60px;
+}
+
+.payment__flex {
+  display: flex;
+  gap: 24px;
+  padding: 24px 0;
+  border-bottom: 1px solid #e7e7e7;
+}
+
+.payment__flex h3 {
+  min-width: 240px;
+  font-size: 18px;
+  color: #0f1111;
+}
+
+.payment__deliveryInfo > div {
+  color: #565959;
+  line-height: 1.7;
+}
+
+.payment__deliveryItem img {
+  width: 80px !important;
+}
+
+.payment__deliveryItem div {
+  height: auto !important;
+}
+
+.payment__card_methods {
+  width: 100%;
+  max-width: 420px;
+}
+
+.payment__card_details {
+  font-size: 16px;
+}
+
+.payment__card_details form {
+  border: 1px solid #d5d9d9;
+  border-radius: 10px;
+  padding: 20px;
+  background: #fff;
+  box-shadow: 0 2px 10px rgba(15, 17, 17, 0.08);
+}
+
+.payment__card_details form :global(.StripeElement) {
+  border: 1px solid #d5d9d9;
+  border-radius: 6px;
+  padding: 12px 14px;
+  background: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.payment__card_details form :global(.StripeElement--focus) {
+  border-color: #e77600;
+  box-shadow: 0 0 0 3px rgba(231, 118, 0, 0.2);
+}
+
+.payment__card_error {
+  display: block;
+  color: #c40000;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.payment__price {
+  padding-top: 16px;
+}
+
+.payment__price span {
+  display: flex;
+  align-items: center;
+  font-size: 18px;
+  font-weight: 700;
+  color: #b12704;
+  gap: 8px;
+}
+
+.payment__price button {
+  margin-top: 16px;
+  width: 100%;
+  border: 1px solid #fcd200;
+  background: linear-gradient(to bottom, #f7dfa5, #f0c14b);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f1111;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+.payment__price button:hover {
+  filter: brightness(0.97);
+}
+.payment__price button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.payment__card_details_loader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  color: #333;
+}
+
+@media screen and (max-width: 768px) {
+  .payment__flex {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .payment__flex h3 {
+    min-width: unset;
+  }
+}

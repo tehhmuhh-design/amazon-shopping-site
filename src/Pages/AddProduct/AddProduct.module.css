@@ -1,0 +1,85 @@
+.addProduct {
+  max-width: 640px;
+  margin: 40px auto;
+  background: #fff;
+  padding: 32px;
+  border-radius: 10px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.addProduct h1 {
+  font-size: 28px;
+  margin-bottom: 4px;
+}
+
+.subtitle {
+  color: #565959;
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form label {
+  display: flex;
+  flex-direction: column;
+  font-weight: 700;
+  font-size: 14px;
+  gap: 6px;
+}
+
+.form input,
+.form textarea {
+  font-weight: 400;
+  font-size: 15px;
+  padding: 10px 12px;
+  border: 1px solid #888c8c;
+  border-radius: 8px;
+  outline: none;
+  font-family: inherit;
+}
+
+.form input:focus,
+.form textarea:focus {
+  border-color: #e77600;
+  box-shadow: 0 0 0 3px rgba(228, 121, 17, 0.25);
+}
+
+.or {
+  text-align: center;
+  color: #888;
+  font-size: 13px;
+}
+
+.form button {
+  margin-top: 8px;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(to bottom, #f7dfa5, #f0c14b);
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+}
+
+.form button:hover {
+  background: linear-gradient(to bottom, #f5d78e, #eeb933);
+}
+
+.form button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.message {
+  text-align: center;
+  font-size: 14px;
+  margin-top: 8px;
+}
