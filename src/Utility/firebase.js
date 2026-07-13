@@ -1,35 +1,20 @@
-import firebase from "firebase/compat/app"; // Import the compat version of Firebase
+import firebase from "firebase/compat/app";
 import { getAuth } from "firebase/auth";
-import "firebase/compat/firestore"; // Import Firestore compat
-import "firebase/compat/auth"; // Import Auth compat
-import "firebase/compat/storage"; // Import Storage compat (for product image uploads)
-
-// Your web app's Firebase configuration
-
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+import "firebase/compat/firestore";
+import "firebase/compat/auth";
+import "firebase/compat/storage";
 
 const firebaseConfig = {
-
-  apiKey: "AIzaSyBGHVU6qJ3cb30dFvmPqbvE4vbbfufT3v0",
-
-  authDomain: "shoppingstite.firebaseapp.com",
-
-  projectId: "shoppingstite",
-
-  storageBucket: "shoppingstite.firebasestorage.app",
-
-  messagingSenderId: "740873917598",
-
-  appId: "1:740873917598:web:48d0138410671836d6d78f",
-
-  measurementId: "G-5F2MX43EVD"
-
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID, // Ensure this name matches Vercel exactly!
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-
-// Initialize Firebase using the compat version
 const app = firebase.initializeApp(firebaseConfig);
 
-export const auth = getAuth(app); // Authentication instance (used with modular auth functions)
-export const db = firebase.firestore(); // Firestore database (compat API)
-export const storage = firebase.storage(); // Cloud Storage (compat API) for image uploads
+export const auth = getAuth(app);
+export const db = firebase.firestore();
+export const storage = firebase.storage();
