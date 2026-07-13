@@ -12,7 +12,7 @@ const firebaseConfig = {
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID, // Ensure this name matches Vercel exactly!
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
-
+console.log("MY API KEY IS:", import.meta.env.VITE_FIREBASE_API_KEY);
 const app = firebase.initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
