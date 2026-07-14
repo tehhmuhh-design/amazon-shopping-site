@@ -96,8 +96,13 @@ function Payment() {
         created: Date.now(),
       };
 
+      // Firestore rejects any document containing `undefined`. Older/demo
+      // products may have missing fields (e.g. no sellerId, no rating), so
+      // strip every undefined value out before writing.
+      const clean = JSON.parse(JSON.stringify(orderData));
+
       // 1) Top-level "orders" collection — easy to view every order in the console.
-      const orderRef = await db.collection("orders").add(orderData);
+      const orderRef = await db.collection("orders").add(clean);
 
       // 2) Also store it under the user so the "Your Orders" page shows it.
       if (user?.uid) {
@@ -106,7 +111,7 @@ function Payment() {
           .doc(user.uid)
           .collection("orders")
           .doc(orderRef.id)
-          .set(orderData);
+          .set(clean);
       }
 
       // Empty the basket and go to the orders page.

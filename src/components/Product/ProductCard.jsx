@@ -28,17 +28,25 @@ function ProductCard({
 
   // Function to add the product to the cart
   const addToCart = () => {
+    // Build the item, only including sellerId when it actually exists —
+    // Firestore rejects documents containing undefined values, and demo/older
+    // products have no sellerId.
+    const item = {
+      image,
+      title,
+      id,
+      rating: rating || null,
+      price,
+      description: description || null,
+    };
+
+    if (sellerId) {
+      item.sellerId = sellerId;
+    }
+
     dispatch({
       type: Type.ADD_TO_BASKET, // Dispatching an action to add the item to the basket
-      item: {
-        image,
-        title,
-        id,
-        rating,
-        price,
-        description,
-        sellerId, // carry the seller through so the basket/checkout knows the owner
-      },
+      item,
     });
   };
 
