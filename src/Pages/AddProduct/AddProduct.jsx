@@ -1,8 +1,10 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import classes from "./AddProduct.module.css";
 import { db } from "../../Utility/firebase"; // Compat Firestore instance
+import { DataContext } from "../../components/DataProvider/DataProvider"; // Global state (for the seller)
 
 function AddProduct() {
+  const [{ user }] = useContext(DataContext); // The logged-in user is the seller
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [category, setCategory] = useState("");
@@ -17,6 +19,11 @@ function AddProduct() {
 
     if (!imageFile) {
       setMessage({ type: "error", text: "Please select a product image file first." });
+      return;
+    }
+
+    if (!user) {
+      setMessage({ type: "error", text: "You must be signed in to list a product." });
       return;
     }
 
@@ -49,6 +56,8 @@ function AddProduct() {
         category: category,
         description: description,
         image: uploadedImageUrl,
+        sellerId: user.uid, // who listed it — used to block buying your own item
+        sellerEmail: user.email,
         createdAt: new Date(),
       });
 

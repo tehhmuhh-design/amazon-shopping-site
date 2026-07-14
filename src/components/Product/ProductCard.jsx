@@ -16,10 +16,15 @@ function ProductCard({
   titleUp, // Flag to show title on top
 }) {
   // Destructuring product details
-  const { image, title, id, rating, price, description } = product;
+  const { image, title, id, rating, price, description, sellerId } = product;
 
   // Accessing global state and dispatch function from DataContext
-  const [state, dispatch] = useContext(DataContext);
+  const [{ user }, dispatch] = useContext(DataContext);
+
+  // A product is "yours" only if it has a sellerId (user-uploaded, not a demo
+  // product) AND that sellerId matches the logged-in user. Demo/FakeStore
+  // products have no sellerId, so they remain purchasable by everyone.
+  const isOwnListing = Boolean(sellerId) && user?.uid === sellerId;
 
   // Function to add the product to the cart
   const addToCart = () => {
@@ -32,6 +37,7 @@ function ProductCard({
         rating,
         price,
         description,
+        sellerId, // carry the seller through so the basket/checkout knows the owner
       },
     });
   };
@@ -77,12 +83,27 @@ function ProductCard({
           <CurrencyFormat amount={price} />{" "}
           {/* Custom currency formatting component */}
         </div>
-        {/* Conditionally render "Add to Cart" button */}
-        {renderAdd && (
-          <button className={classes.productCard__button} onClick={addToCart}>
-            Add to cart
-          </button>
-        )}
+        {/* Conditionally render "Add to Cart" button.
+            If this is the user's own listing, show a disabled notice instead so
+            they can't buy their own product. */}
+        {renderAdd &&
+          (isOwnListing ? (
+            <button
+              className={classes.productCard__button}
+              disabled
+              style={{
+                background: "#e7e9ec",
+                color: "#565959",
+                cursor: "not-allowed",
+              }}
+            >
+              This is your listing
+            </button>
+          ) : (
+            <button className={classes.productCard__button} onClick={addToCart}>
+              Add to cart
+            </button>
+          ))}
       </div>
     </div>
   );

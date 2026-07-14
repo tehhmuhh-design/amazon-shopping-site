@@ -12,8 +12,9 @@ import { Type } from "../../Utility/action.type"; // Reducer action types
 
 // Checkout page. When the user enters a (test) card and clicks save, the order
 // and the card's safe details are written straight to Firestore so they can be
-// viewed in the Firebase console. This does NOT require any Stripe backend /
-// Cloud Function to be deployed — only your Firebase config needs to be set.
+// viewed in the Firebase console. This does NOT charge the card — there is no
+// Stripe backend / PaymentIntent — it validates the card and stores safe
+// metadata (brand + last4) alongside the order for testing/demo purposes.
 function Payment() {
   const [{ basket, user }, dispatch] = useContext(DataContext);
   const totalItem = basket?.reduce((amount, item) => item.amount + amount, 0);
@@ -23,18 +24,20 @@ function Payment() {
   );
 
   const [cardError, setCardError] = useState(null);
+  const [cardComplete, setCardComplete] = useState(false); // true when the card field is fully valid
   const [processing, setProcessing] = useState(false);
 
   const stripe = useStripe();
   const elements = useElements();
   const navigate = useNavigate();
 
-  // Show inline validation messages from the card field.
+  // Track validation state AND completeness of the card field.
   const handleChange = (e) => {
     setCardError(e?.error?.message || "");
+    setCardComplete(e?.complete || false);
   };
 
-  // Save the order (and card brand/last4) to Firestore.
+  // Validate the card, then save the order (with card brand/last4) to Firestore.
   const handlePayment = async (e) => {
     e.preventDefault();
 
@@ -43,52 +46,57 @@ function Payment() {
       return;
     }
 
+    // Require Stripe to be ready and the card field to be complete before saving.
+    if (!stripe || !elements) {
+      setCardError("Payment form is still loading. Please wait a moment.");
+      return;
+    }
+
+    if (!cardComplete) {
+      setCardError("Please enter complete card details before saving.");
+      return;
+    }
+
     try {
       setProcessing(true);
       setCardError("");
 
-      // Read the card entered in the Stripe field. This validates the card and
-      // returns SAFE metadata (brand + last 4 digits only) — never the full
-      // card number, which Stripe keeps hidden for security/PCI reasons.
-      let cardMeta = null;
-      let paymentStatus = "saved";
+      // Read + validate the card. Returns SAFE metadata (brand + last4 only);
+      // the full card number is never exposed for PCI/security reasons.
+      const { paymentMethod, error } = await stripe.createPaymentMethod({
+        type: "card",
+        card: elements.getElement(CardElement),
+      });
 
-      if (stripe && elements) {
-        const { paymentMethod, error } = await stripe.createPaymentMethod({
-          type: "card",
-          card: elements.getElement(CardElement),
-        });
-
-        if (error) {
-          // We still save the order so it is visible in the backend, but flag it.
-          paymentStatus = "card_error";
-          setCardError(error.message);
-        } else if (paymentMethod?.card) {
-          const c = paymentMethod.card;
-          cardMeta = {
-            brand: c.brand,
-            last4: c.last4,
-            expMonth: c.exp_month,
-            expYear: c.exp_year,
-            paymentMethodId: paymentMethod.id,
-          };
-        }
+      // If the card is invalid, STOP — do not save a broken order.
+      if (error) {
+        setCardError(error.message);
+        setProcessing(false);
+        return;
       }
 
-      // The order document that gets stored in the backend (Firestore).
+      const c = paymentMethod.card;
+      const cardMeta = {
+        brand: c.brand,
+        last4: c.last4,
+        expMonth: c.exp_month,
+        expYear: c.exp_year,
+        paymentMethodId: paymentMethod.id,
+      };
+
+      // The order document that gets stored in Firestore.
       const orderData = {
         basket: basket,
         amount: total,
         amountCents: Math.round(total * 100),
         email: user?.email || null,
         uid: user?.uid || null,
-        card: cardMeta || { note: "Card could not be read" },
-        paymentStatus: paymentStatus,
+        card: cardMeta,
+        paymentStatus: "saved",
         created: Date.now(),
       };
 
-      // 1) Top-level "orders" collection — the easiest place for your classmate
-      //    to view every order in the Firebase console.
+      // 1) Top-level "orders" collection — easy to view every order in the console.
       const orderRef = await db.collection("orders").add(orderData);
 
       // 2) Also store it under the user so the "Your Orders" page shows it.
@@ -166,7 +174,7 @@ function Payment() {
                       Total Order | <CurrencyFormat amount={total} />
                     </span>
                   </div>
-                  <button type="submit" disabled={processing}>
+                  <button type="submit" disabled={processing || !cardComplete}>
                     {processing ? (
                       <div className={classes.payment__card_details_loader}>
                         <ClipLoader color="#000" size={12} />
