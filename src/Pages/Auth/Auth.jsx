@@ -1,11 +1,7 @@
 import React, { useContext, useState } from "react"; // Importing React and necessary hooks
 import classes from "./Auth.module.css"; // Importing CSS module for authentication page styles
 import { Link, useNavigate, useLocation } from "react-router-dom"; // Importing routing components
-import { auth, db } from "../../Utility/firebase"; // Importing Firebase authentication AND database instance
-import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-} from "firebase/auth"; // Importing Firebase authentication methods
+import { auth, db } from "../../Utility/firebase"; // Importing Firebase authentication AND database instance (compat)
 import { DataContext } from "../../components/DataProvider/DataProvider"; // Importing context for global state management
 import { Type } from "../../Utility/action.type"; // Importing action types for the reducer
 import { ClipLoader } from "react-spinners"; // Importing a loading spinner component
@@ -39,16 +35,19 @@ function Auth() {
     }
 
     if (e.target.name === "signIn") {
-      // Handle Sign In
+      // Handle Sign In (compat method on the auth instance)
       setLoading({ ...loading, signIn: true });
-      signInWithEmailAndPassword(auth, email, password)
+      auth
+        .signInWithEmailAndPassword(email, password)
         .then((userInfo) => {
           // 💾 REQUIREMENT 1: Store inputted data into Firestore Database
-          db.collection("userInputs").add({
-            emailInput: email,
-            action: "signIn",
-            timestamp: new Date(),
-          }).catch((err) => console.error("Database save error:", err));
+          db.collection("userInputs")
+            .add({
+              emailInput: email,
+              action: "signIn",
+              timestamp: new Date(),
+            })
+            .catch((err) => console.error("Database save error:", err));
 
           // Successful sign-in
           dispatch({
@@ -63,16 +62,19 @@ function Auth() {
           setLoading({ ...loading, signIn: false });
         });
     } else {
-      // Handle Sign Up
+      // Handle Sign Up (compat method on the auth instance)
       setLoading({ ...loading, signUp: true });
-      createUserWithEmailAndPassword(auth, email, password)
+      auth
+        .createUserWithEmailAndPassword(email, password)
         .then((userInfo) => {
           // 💾 REQUIREMENT 1: Store inputted data into Firestore Database
-          db.collection("userInputs").add({
-            emailInput: email,
-            action: "signUp",
-            timestamp: new Date(),
-          }).catch((err) => console.error("Database save error:", err));
+          db.collection("userInputs")
+            .add({
+              emailInput: email,
+              action: "signUp",
+              timestamp: new Date(),
+            })
+            .catch((err) => console.error("Database save error:", err));
 
           // Successful sign-up
           dispatch({

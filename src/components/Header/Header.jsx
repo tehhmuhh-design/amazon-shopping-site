@@ -8,12 +8,13 @@ import classes from "./Header.module.css"; // Importing styles specific to the H
 import LowerHeader from "./LowerHeader"; // Importing another component for the lower part of the header
 import { DataContext } from "../DataProvider/DataProvider"; // Importing the data context to access the basket and user
 import { auth } from "../../Utility/firebase"; // Firebase authentication for signing in/out
+import { Type } from "../../Utility/action.type"; // Reducer action types
 import axios from "axios"; // Axios for making HTTP requests
 import { productUrl } from "../../Api/endPoints"; // API endpoint for products
 
 function Header() {
   // Accessing the basket (cart items) and user from the context
-  const [{ basket, user }] = useContext(DataContext);
+  const [{ basket, user }, dispatch] = useContext(DataContext);
 
   // Calculate total items in the basket (cart) using reduce
   const totalItem = basket?.reduce((amount, item) => item.amount + amount, 0);
@@ -37,6 +38,19 @@ function Header() {
         console.error("Error fetching categories:", error); // Log any errors
       });
   }, []);
+
+  // Sign the user out of Firebase AND clear the app's user state, then go home.
+  const handleSignOut = () => {
+    auth
+      .signOut()
+      .then(() => {
+        dispatch({ type: Type.SET_USER, user: null });
+        navigate("/");
+      })
+      .catch((error) => {
+        console.error("Sign out error:", error);
+      });
+  };
 
   // Handle changes in the search input field
   const handleSearchInputChange = (e) => {
@@ -164,13 +178,20 @@ function Header() {
             </a>
 
             {/* Sign In / Sign Out */}
-            <Link to={!user && "/auth"}>
+            <Link to={user ? "/orders" : "/auth"}>
               <div>
                 {user ? ( // If the user is signed in
                   <>
                     <p>Hello, {user?.email?.split("@")[0]}</p>{" "}
                     {/* Greet the user */}
-                    <span onClick={() => auth.signOut()}>Sign out</span>{" "}
+                    <span
+                      onClick={(e) => {
+                        e.preventDefault(); // don't let the Link navigate
+                        handleSignOut();
+                      }}
+                    >
+                      Sign out
+                    </span>{" "}
                     {/* Sign out option */}
                   </>
                 ) : (

@@ -3,10 +3,13 @@ import { Type } from "./action.type";
 // Load basket from local storage when the application starts
 const savedBasket = JSON.parse(localStorage.getItem('basket')) || [];
 
-// Initial state with the saved basket from local storage and a default null user
+// Initial state with the saved basket from local storage and a default null user.
+// authLoading starts true so protected routes wait for Firebase to report the
+// real session before deciding whether to redirect.
 export const initialState = {
   basket: savedBasket,
-  user: null
+  user: null,
+  authLoading: true
 };
 
 // Reducer function that handles various action types
@@ -18,14 +21,14 @@ export const reducer = (state, action) => {
         const existingItem = state.basket.find(
           (item) => item.id === action.item.id
         );
-        
+
         // If the item is not in the basket, add it with an amount of 1
         if (!existingItem) {
           const updatedBasket = [...state.basket, { ...action.item, amount: 1 }];
-          
+
           // Save the updated basket to local storage
           localStorage.setItem('basket', JSON.stringify(updatedBasket));
-          
+
           return {
             ...state,
             basket: updatedBasket, // Update the state with the new basket
@@ -37,10 +40,10 @@ export const reducer = (state, action) => {
               ? { ...item, amount: item.amount + 1 } // Increase amount by 1
               : item;
           });
-          
+
           // Save the updated basket to local storage
           localStorage.setItem('basket', JSON.stringify(updatedBasket));
-          
+
           return {
             ...state,
             basket: updatedBasket, // Update the state with the new basket
@@ -69,7 +72,7 @@ export const reducer = (state, action) => {
 
         // Save the updated basket to local storage
         localStorage.setItem('basket', JSON.stringify(newBasket));
-        
+
         return {
           ...state,
           basket: newBasket, // Update the state with the new basket
@@ -80,6 +83,12 @@ export const reducer = (state, action) => {
       return {
         ...state,
         user: action.user // Update the user in the state when a user logs in or out
+      }
+
+    case Type.SET_AUTH_LOADING:
+      return {
+        ...state,
+        authLoading: action.authLoading // Flip to false once Firebase reports the session
       }
 
     case Type.EMPTY_BASKET:

@@ -7,27 +7,33 @@ import { Type } from "./Utility/action.type.js"; // Importing action types for t
 
 // The main App component
 function App() {
-  const [dispatch] = useContext(DataContext); // Accessing the user and dispatch from global state
+  // The context value is [state, dispatch]. We only need dispatch here, so we
+  // skip the first slot. (The previous `const [dispatch]` grabbed STATE by
+  // mistake and named it dispatch, which broke the listener.)
+  const [, dispatch] = useContext(DataContext);
 
   // useEffect to handle Firebase authentication state
   useEffect(() => {
-    // Firebase listener for auth state changes (user login/logout)
-    auth.onAuthStateChanged((authUser) => {
-      if (authUser) {
-        // If a user is logged in, dispatch an action to set the user in the global state
-        dispatch({
-          type: Type.SET_USER,
-          user: authUser,
-        });
-      } else {
-        // If no user is logged in, set the user to null in the global state
-        dispatch({
-          type: Type.SET_USER,
-          user: null,
-        });
-      }
+    // Firebase listener for auth state changes (user login/logout). It fires
+    // once on mount with the current session (or null), then on every
+    // login/logout. Returns an unsubscribe function for cleanup.
+    const unsubscribe = auth.onAuthStateChanged((authUser) => {
+      // Mirror Firebase's session into global state.
+      dispatch({
+        type: Type.SET_USER,
+        user: authUser || null,
+      });
+
+      // Tell protected routes the auth check is complete so they stop waiting.
+      dispatch({
+        type: Type.SET_AUTH_LOADING,
+        authLoading: false,
+      });
     });
-  }, [dispatch]); // The effect depends on dispatch and runs only once (on mount)
+
+    // Clean up the listener when App unmounts.
+    return () => unsubscribe();
+  }, [dispatch]); // Runs once on mount
 
   // Render the routing component which manages page routing
   return <Routing />;
