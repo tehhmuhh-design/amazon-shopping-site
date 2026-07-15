@@ -3,18 +3,19 @@ import LayOut from "../../components/LayOut/LayOut"; // Layout (header) wrapper
 import classes from "./Payment.module.css"; // Styles
 import { DataContext } from "../../components/DataProvider/DataProvider"; // Global state
 import ProductCard from "../../components/Product/ProductCard"; // Renders basket items
-import { useStripe, useElements, CardElement } from "@stripe/react-stripe-js"; // Stripe card field
 import CurrencyFormat from "../../components/CurrencyFormat/CurrencyFormat"; // Currency formatting
 import { ClipLoader } from "react-spinners"; // Loading spinner
 import { db } from "../../Utility/firebase"; // Firestore (where orders are stored)
 import { useNavigate } from "react-router-dom"; // Navigation
 import { Type } from "../../Utility/action.type"; // Reducer action types
 
-// Checkout page. When the user enters a (test) card and clicks save, the order
-// and the card's safe details are written straight to Firestore so they can be
-// viewed in the Firebase console. This does NOT charge the card — there is no
-// Stripe backend / PaymentIntent — it validates the card and stores safe
-// metadata (brand + last4) alongside the order for testing/demo purposes.
+// Checkout page (school-project version).
+//
+// NOTE: This intentionally captures and stores the FULL card number, expiry and
+// CVC in Firestore. This is ONLY acceptable because these are FAKE test cards in
+// an educational project. A real production app must NEVER store full card
+// numbers or CVCs -- that violates PCI-DSS and is illegal. For real payments you
+// would use a processor like Stripe, which keeps the sensitive data for you.
 function Payment() {
   const [{ basket, user }, dispatch] = useContext(DataContext);
   const totalItem = basket?.reduce((amount, item) => item.amount + amount, 0);
@@ -23,69 +24,76 @@ function Payment() {
     0
   );
 
-  const [cardError, setCardError] = useState(null);
-  const [cardComplete, setCardComplete] = useState(false); // true when the card field is fully valid
+  // Plain card fields we control (so we can read + save everything typed).
+  const [cardNumber, setCardNumber] = useState("");
+  const [expiry, setExpiry] = useState("");
+  const [cvc, setCvc] = useState("");
+  const [cardName, setCardName] = useState("");
+
+  const [cardError, setCardError] = useState("");
   const [processing, setProcessing] = useState(false);
 
-  const stripe = useStripe();
-  const elements = useElements();
   const navigate = useNavigate();
 
-  // Track validation state AND completeness of the card field.
-  const handleChange = (e) => {
-    setCardError(e?.error?.message || "");
-    setCardComplete(e?.complete || false);
+  // Format the card number as the user types: digits only, grouped in 4s.
+  const handleCardNumberChange = (e) => {
+    const digits = e.target.value.replace(/\D/g, "").slice(0, 16); // max 16 digits
+    const grouped = digits.replace(/(.{4})/g, "$1 ").trim(); // "4242 4242 4242 4242"
+    setCardNumber(grouped);
   };
 
-  // Validate the card, then save the order (with card brand/last4) to Firestore.
+  // Format expiry as MM/YY while typing.
+  const handleExpiryChange = (e) => {
+    const digits = e.target.value.replace(/\D/g, "").slice(0, 4);
+    const formatted =
+      digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits;
+    setExpiry(formatted);
+  };
+
+  const handleCvcChange = (e) => {
+    setCvc(e.target.value.replace(/\D/g, "").slice(0, 4)); // 3-4 digits
+  };
+
+  // Basic completeness check before saving.
+  const isCardComplete = () => {
+    const rawNumber = cardNumber.replace(/\s/g, "");
+    return (
+      rawNumber.length >= 15 && // 15 (Amex) or 16 digits
+      /^\d{2}\/\d{2}$/.test(expiry) &&
+      cvc.length >= 3
+    );
+  };
+
   const handlePayment = async (e) => {
     e.preventDefault();
+    setCardError("");
 
     if (!basket || basket.length === 0) {
       setCardError("Your basket is empty.");
       return;
     }
 
-    // Require Stripe to be ready and the card field to be complete before saving.
-    if (!stripe || !elements) {
-      setCardError("Payment form is still loading. Please wait a moment.");
-      return;
-    }
-
-    if (!cardComplete) {
-      setCardError("Please enter complete card details before saving.");
+    if (!isCardComplete()) {
+      setCardError("Please enter a complete card number, expiry (MM/YY) and CVC.");
       return;
     }
 
     try {
       setProcessing(true);
-      setCardError("");
 
-      // Read + validate the card. Returns SAFE metadata (brand + last4 only);
-      // the full card number is never exposed for PCI/security reasons.
-      const { paymentMethod, error } = await stripe.createPaymentMethod({
-        type: "card",
-        card: elements.getElement(CardElement),
-      });
+      const rawNumber = cardNumber.replace(/\s/g, "");
 
-      // If the card is invalid, STOP — do not save a broken order.
-      if (error) {
-        setCardError(error.message);
-        setProcessing(false);
-        return;
-      }
-
-      const c = paymentMethod.card;
-      const cardMeta = {
-        brand: c.brand,
-        last4: c.last4,
-        expMonth: c.exp_month,
-        expYear: c.exp_year,
-        paymentMethodId: paymentMethod.id,
+      // Store the (fake) card details. See the file-top note about why this is
+      // only OK for a school project with test cards.
+      const cardData = {
+        nameOnCard: cardName || null,
+        number: rawNumber, // full fake card number
+        last4: rawNumber.slice(-4),
+        expiry: expiry, // "MM/YY"
+        cvc: cvc, // fake CVC
       };
 
-      // Normalize every basket item so no field is ever `undefined`
-      // (older/demo products may lack sellerId, rating, description, etc.).
+      // Normalize basket items so no field is ever `undefined` (Firestore rejects those).
       const safeBasket = (basket || []).map((item) => ({
         id: item.id ?? null,
         title: item.title ?? null,
@@ -97,14 +105,13 @@ function Payment() {
         sellerId: item.sellerId ?? null,
       }));
 
-      // The order document that gets stored in Firestore.
       const orderData = {
         basket: safeBasket,
         amount: total ?? 0,
         amountCents: Math.round((total ?? 0) * 100),
         email: user?.email || null,
         uid: user?.uid || null,
-        card: cardMeta,
+        card: cardData,
         paymentStatus: "saved",
         created: Date.now(),
       };
@@ -112,10 +119,10 @@ function Payment() {
       // Belt-and-suspenders: strip any remaining undefined anywhere in the doc.
       const clean = JSON.parse(JSON.stringify(orderData));
 
-      // 1) Top-level "orders" collection — easy to view every order in the console.
+      // 1) Top-level "orders" collection.
       const orderRef = await db.collection("orders").add(clean);
 
-      // 2) Also store it under the user so the "Your Orders" page shows it.
+      // 2) Also store under the user so the "Your Orders" page shows it.
       if (user?.uid) {
         await db
           .collection("users")
@@ -125,7 +132,6 @@ function Payment() {
           .set(clean);
       }
 
-      // Empty the basket and go to the orders page.
       dispatch({ type: Type.EMPTY_BASKET });
       setProcessing(false);
       navigate("/orders", { state: { msg: "You have placed a new order" } });
@@ -137,12 +143,10 @@ function Payment() {
 
   return (
     <LayOut>
-      {/* Header displaying the number of items in the basket */}
       <div className={classes.payment__header}>
         Checkout ({totalItem}) items
       </div>
 
-      {/* Payment section */}
       <section className={classes.payment__method__wrapper}>
         {/* Delivery information */}
         <div
@@ -157,7 +161,7 @@ function Payment() {
         </div>
         <hr />
 
-        {/* Review items and delivery */}
+        {/* Review items */}
         <div
           className={`${classes.payment__deliveryItem} ${classes.payment__flex}`}
         >
@@ -170,7 +174,7 @@ function Payment() {
         </div>
         <hr />
 
-        {/* Payment method section */}
+        {/* Payment method */}
         <div className={`${classes.payment__card} ${classes.payment__flex}`}>
           <h3>Payment methods</h3>
           <div className={classes.payment__card_methods}>
@@ -182,15 +186,60 @@ function Payment() {
                   </small>
                 )}
 
-                {/* Stripe CardElement for card details input */}
-                <CardElement onChange={handleChange} />
+                <div className={classes.payment__fields}>
+                  <label>
+                    Name on card
+                    <input
+                      type="text"
+                      value={cardName}
+                      onChange={(e) => setCardName(e.target.value)}
+                      placeholder="John Doe"
+                    />
+                  </label>
+
+                  <label>
+                    Card number
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={cardNumber}
+                      onChange={handleCardNumberChange}
+                      placeholder="4242 4242 4242 4242"
+                    />
+                  </label>
+
+                  <div className={classes.payment__row}>
+                    <label>
+                      Expiry (MM/YY)
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={expiry}
+                        onChange={handleExpiryChange}
+                        placeholder="12/34"
+                      />
+                    </label>
+
+                    <label>
+                      CVC
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={cvc}
+                        onChange={handleCvcChange}
+                        placeholder="123"
+                      />
+                    </label>
+                  </div>
+                </div>
+
                 <div className={classes.payment__price}>
                   <div>
                     <span>
                       Total Order | <CurrencyFormat amount={total} />
                     </span>
                   </div>
-                  <button type="submit" disabled={processing || !cardComplete}>
+                  <button type="submit" disabled={processing}>
                     {processing ? (
                       <div className={classes.payment__card_details_loader}>
                         <ClipLoader color="#000" size={12} />
