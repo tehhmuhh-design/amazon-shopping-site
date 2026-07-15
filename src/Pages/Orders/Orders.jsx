@@ -1,26 +1,36 @@
 import React, { useContext, useEffect, useState } from "react";
-import LayOut from "../../components/LayOut/LayOut"; // Importing the layout component
-import { db } from "../../Utility/firebase"; // Importing Firebase database instance
-import { DataContext } from "../../components/DataProvider/DataProvider"; // Importing the global state context
-import classes from "./Orders.module.css"; // Importing CSS module for orders-specific styling
-import ProductCard from "../../components/Product/ProductCard"; // Importing the ProductCard component to display individual products in an order
+import { useLocation } from "react-router-dom"; // to read the "order placed" message
+import LayOut from "../../components/LayOut/LayOut"; // Layout component
+import { db } from "../../Utility/firebase"; // Firebase database instance
+import { DataContext } from "../../components/DataProvider/DataProvider"; // Global state context
+import classes from "./Orders.module.css"; // Orders-specific styling
+import ProductCard from "../../components/Product/ProductCard"; // Individual product display
+import OrderTracker from "./OrderTracker"; // Amazon-style delivery tracker
 
 // Functional component to display user orders
 function Orders() {
-  const [{ user }] = useContext(DataContext); // Accessing the current user from global state
-  const [orders, setOrders] = useState([]); // State to hold the user's orders
+  const [{ user }] = useContext(DataContext); // Current user from global state
+  const [orders, setOrders] = useState([]); // The user's orders
+  const navState = useLocation(); // carries { msg: "You have placed a new order" }
+
+  // Show the "order placed" confirmation banner briefly after checkout.
+  const [showConfirm, setShowConfirm] = useState(Boolean(navState?.state?.msg));
+
+  useEffect(() => {
+    if (navState?.state?.msg) {
+      const t = setTimeout(() => setShowConfirm(false), 6000); // hide after 6s
+      return () => clearTimeout(t);
+    }
+  }, [navState]);
 
   // Fetch orders from Firebase whenever the user changes
   useEffect(() => {
     if (user) {
-      // Access the 'orders' collection in Firebase for the current user, sorted by creation time (desc)
       db.collection("users")
         .doc(user.uid)
         .collection("orders")
         .orderBy("created", "desc")
         .onSnapshot((snapshot) => {
-          // console.log(snapshot);
-          // Map through the snapshot and update the orders state with the fetched data
           setOrders(
             snapshot.docs.map((doc) => ({
               id: doc.id,
@@ -29,15 +39,23 @@ function Orders() {
           );
         });
     } else {
-      setOrders([]); // If there's no user, clear the orders
+      setOrders([]);
     }
-  }, [user]); // Dependency array makes sure this runs whenever the user changes
+  }, [user]);
 
   return (
     <LayOut>
       <section className={classes.orders}>
         <div className={classes.orders__container}>
           <h2>Your Orders</h2>
+
+          {/* Confirmation banner shown right after placing an order */}
+          {showConfirm && (
+            <div className={classes.orders__confirm}>
+              ✅ {navState.state.msg}. Your order is on its way!
+            </div>
+          )}
+
           {/* If there are no orders, display a message */}
           {orders?.length === 0 && (
             <div className={classes.orders__empty}>
@@ -48,16 +66,20 @@ function Orders() {
           {/* Display each order */}
           <div>
             {orders?.map((eachOrder, i) => (
-              <div key={i}>
+              <div key={i} className={classes.orders__order}>
                 <hr />
-                <p>Order ID: {eachOrder?.id}</p> {/* Display the order ID */}
-                {/* For each order, map through the products in the basket and display each using ProductCard */}
+                <p className={classes.orders__id}>Order ID: {eachOrder?.id}</p>
+
+                {/* Amazon-style delivery tracker for this order */}
+                <OrderTracker created={eachOrder?.data?.created} />
+
+                {/* Products in this order */}
                 {eachOrder?.data?.basket?.map((order) => (
                   <ProductCard
                     key={order.id}
-                    product={order} // Pass the product data to ProductCard
-                    flex={true} // Apply flexible layout
-                    titleUp={true} // Show the title at the top of the card
+                    product={order}
+                    flex={true}
+                    titleUp={true}
                   />
                 ))}
               </div>
@@ -69,4 +91,4 @@ function Orders() {
   );
 }
 
-export default Orders; // Exporting the component for use in other parts of the application
+export default Orders;

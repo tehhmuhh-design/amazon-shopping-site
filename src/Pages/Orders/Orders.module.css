@@ -19,7 +19,32 @@
 .orders__container img {
   width: 100px !important;
 }
-.orders__container div {
-  /* height: auto !important; */
+
+/* Scoped to direct children only, so it doesn't squash the tracker's inner
+   divs (dots, lines, steps). Previously this targeted EVERY nested div. */
+.orders__container > div {
   height: inherit;
+}
+
+/* ---- Order confirmation banner (after checkout) ---- */
+.orders__confirm {
+  margin: 12px 0 20px;
+  padding: 14px 16px;
+  background: #f0fff4;
+  border: 1px solid #b7e4c7;
+  border-radius: 8px;
+  color: #067d62;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+/* ---- Per-order spacing + id text ---- */
+.orders__order {
+  margin-bottom: 24px;
+}
+
+.orders__id {
+  font-size: 13px;
+  color: #565959;
+  margin: 12px 0;
 }
