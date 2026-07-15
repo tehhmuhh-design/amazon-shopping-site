@@ -1,0 +1,38 @@
+.tracker {
+  margin: 12px 0 20px;
+  padding: 16px 18px;
+  background: #fff;
+  border: 1px solid #e7e7e7;
+  border-radius: 8px;
+}
+.tracker__status {
+  margin: 0 0 18px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #067d62;
+}
+.tracker__status_done { color: #067d62; }
+.tracker__bar { display: flex; align-items: flex-start; }
+.tracker__step { position: relative; flex: 1; display: flex; align-items: flex-start; }
+.tracker__line {
+  position: absolute; top: 13px; left: -50%;
+  width: 100%; height: 3px; background: #d5d9d9; z-index: 0;
+}
+.tracker__line_done { background: #067d62; }
+.tracker__stepInner {
+  position: relative; z-index: 1; display: flex;
+  flex-direction: column; align-items: center; gap: 8px; width: 100%;
+}
+.tracker__dot {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: #fff; border: 3px solid #d5d9d9;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; color: #fff;
+}
+.tracker__dot_done { background: #067d62; border-color: #067d62; }
+.tracker__label { font-size: 12px; color: #565959; text-align: center; line-height: 1.3; }
+.tracker__label_done { color: #0f1111; font-weight: 600; }
+@media screen and (max-width: 500px) {
+  .tracker__label { font-size: 10px; }
+  .tracker__dot { width: 24px; height: 24px; font-size: 12px; }
+}
