@@ -84,11 +84,24 @@ function Payment() {
         paymentMethodId: paymentMethod.id,
       };
 
+      // Normalize every basket item so no field is ever `undefined`
+      // (older/demo products may lack sellerId, rating, description, etc.).
+      const safeBasket = (basket || []).map((item) => ({
+        id: item.id ?? null,
+        title: item.title ?? null,
+        image: item.image ?? null,
+        price: item.price ?? 0,
+        amount: item.amount ?? 1,
+        description: item.description ?? null,
+        rating: item.rating ?? null,
+        sellerId: item.sellerId ?? null,
+      }));
+
       // The order document that gets stored in Firestore.
       const orderData = {
-        basket: basket,
-        amount: total,
-        amountCents: Math.round(total * 100),
+        basket: safeBasket,
+        amount: total ?? 0,
+        amountCents: Math.round((total ?? 0) * 100),
         email: user?.email || null,
         uid: user?.uid || null,
         card: cardMeta,
@@ -96,9 +109,7 @@ function Payment() {
         created: Date.now(),
       };
 
-      // Firestore rejects any document containing `undefined`. Older/demo
-      // products may have missing fields (e.g. no sellerId, no rating), so
-      // strip every undefined value out before writing.
+      // Belt-and-suspenders: strip any remaining undefined anywhere in the doc.
       const clean = JSON.parse(JSON.stringify(orderData));
 
       // 1) Top-level "orders" collection — easy to view every order in the console.
